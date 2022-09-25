@@ -36,6 +36,7 @@ dataset_list = [original_images]
 
 for images in dataset_list:
         print(f"******************* Input image size = {images[0].shape} *******************\n")
+        print(f"Train dev and test split: {TRAIN_SPLIT}, {VALID_SPLIT}, {TEST_SPLIT}")
         # flattening the images
         data = images.reshape((n_samples, -1))
 
