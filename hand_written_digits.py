@@ -11,30 +11,15 @@ import datetime as dt
 MODEL_DIR = "./models"
 
 def svm_model_fit(
-        dataset="digits", 
+        X_train, 
+        X_val, 
+        X_test, 
+        y_train, 
+        y_val, 
+        y_test,
         C=[0.25, 0.5, 1.0, 1.25], 
-        GAMMA=[1e-4, 0.0001, 0.001, 0.01], 
-        TRAIN_SPLIT=0.8, 
-        VALID_SPLIT=0.1, 
-        TEST_SPLIT=0.1, 
-        PLOT=False):
-
-        # loading dsataset
-        data, labels = utils.get_data_and_labels(dataset)
-
-        # plotting the images
-        if PLOT:
-                utils.plot_images(data, labels)
-
-        #flattening the image
-        n_samples = len(data)
-        data = data.reshape((n_samples, -1))
-
-        # splitting the data
-        X_train, X_val, X_test, y_train, y_val, y_test = utils.get_train_dev_test_split(
-                data, labels, TRAIN_SPLIT, VALID_SPLIT, TEST_SPLIT
-        )
-
+        GAMMA=[1e-4, 0.0001, 0.001, 0.01]
+        ):
 
         # Creating a SVM Classifier
         best_acc = -np.inf
@@ -85,8 +70,6 @@ def svm_model_fit(
         model_path = os.path.join(MODEL_DIR, best_model_file_name)
         utils.save_object(best_model, model_path)
         print(f"Path of best model: {model_path}")
-        if PLOT:
-                utils.show_plots()
         return model_path
 
 if __name__ == "__main__":
@@ -104,8 +87,22 @@ if __name__ == "__main__":
 
         # loading data
         dataset = "digits"
+        data, labels = utils.get_data_and_labels(dataset)
 
-        model_path = svm_model_fit(dataset, C, GAMMA, TRAIN_SPLIT, VALID_SPLIT, TEST_SPLIT, PLOT)
+        # plotting the images
+        if PLOT:
+                utils.plot_images(data, labels)
+
+        #flattening the image
+        n_samples = len(data)
+        data = data.reshape((n_samples, -1))
+
+        # splitting the data
+        X_train, X_val, X_test, y_train, y_val, y_test = utils.get_train_dev_test_split(
+                data, labels, TRAIN_SPLIT, VALID_SPLIT, TEST_SPLIT
+        )
+
+        model_path = svm_model_fit(X_train, X_val, X_test, y_train, y_val, y_test, C, GAMMA)
         print(model_path)
         
         
