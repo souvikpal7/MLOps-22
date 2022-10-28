@@ -67,3 +67,20 @@ def get_min_max_mean_median(accs):
         mean_val = np.mean(accs)
         median_val = np.median(accs)
         return min_val, max_val, mean_val, median_val
+
+def split_non_overlapping(data, labels, splits):
+    assert len(data) == len(labels)
+    n_samples = len(data)
+    rand_idxs = np.random.permutation(n_samples)
+    len_splits = n_samples // splits
+    x_data = []
+    y_data = []
+    for split in range(splits):
+        split_idxs = rand_idxs[len_splits * split : len_splits  * (split + 1)]
+        x_split = data[split_idxs]
+        y_split = labels[split_idxs]
+        x_data.append(x_split)
+        y_data.append(y_split)
+    
+    return x_data, y_data
+    

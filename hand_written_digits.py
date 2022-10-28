@@ -71,7 +71,7 @@ def svm_model_fit(
         model_path = os.path.join(MODEL_DIR, best_model_file_name)
         utils.save_object(best_model, model_path)
         print(f"Path of best model: {model_path}")
-        return model_path
+        return model_path, best_model
 
 
 def dtree_model_fit(
@@ -81,7 +81,11 @@ def dtree_model_fit(
         y_train,
         y_test,
         y_val,
-        hyper_param_set={}
+        hyper_param_set={
+                "max_depth": [2, 4, 8, None],
+                "min_samples_split": [2, 8, 12],
+                "min_impurity_decrease": [0.0, 0.01, 0.001]
+        }
 ):
         assert len(hyper_param_set) > 0
         h_param_names = list(hyper_param_set.keys())
@@ -135,48 +139,50 @@ def dtree_model_fit(
         model_path = os.path.join(MODEL_DIR, best_model_file_name)
         utils.save_object(best_model, model_path)
         print(f"Path of best model: {model_path}")
-        return model_path
+        return model_path, best_model
 
 
+def compare_models(data, labels, splits=5):
+        x_splits, y_splits = utils.split_non_overlapping(data, labels, splits)
+        svm_scores = []
+        d_tree_scores = []
+
+        for x_split, y_split in zip(x_splits, y_splits):
+                X_train, X_val, X_test, y_train, y_val, y_test = utils.get_train_dev_test_split(
+                x_split, y_split, 0.8, 0.1, 0.1
+                )
+                _, svm_model = svm_model_fit(X_train, X_val, X_test, y_train, y_val, y_test)
+                a_test_score = svm_model.score(X_test, y_test)
+                svm_scores.append(a_test_score)
+
+                _, d_tree_model = dtree_model_fit(X_train, X_val, X_test, y_train, y_val, y_test)
+                b_test_score = d_tree_model.score(X_test, y_test)
+                d_tree_scores.append(b_test_score)
+
+
+        svm_mean = np.mean(svm_scores)
+        svm_std = np.std(svm_scores)
+        
+        d_tree_mean = np.mean(d_tree_scores)
+        d_tree_std = np.std(d_tree_scores)
+
+        df = pd.DataFrame({'svm': svm_scores, 'decision_tree': d_tree_scores})
+        print(df)
+
+        print(f"SVM model mean and std are {svm_mean} and {svm_std}")
+        print(f"Decision Tree model mean and std are {d_tree_mean} and {d_tree_std}")
 
 if __name__ == "__main__":
-        
-        TRAIN_SPLIT = 0.8
-        VALID_SPLIT = 0.1
-        TEST_SPLIT = 0.1
-
-        # Defining model hyper-parameters
-        C = [0.25, 0.5, 1.0, 1.25]
-        GAMMA = [1e-4, 0.0001, 0.001, 0.01]
-
-        # do we want to plot the samples 
-        PLOT = False
+        np.random.seed(711)
 
         # loading data
         dataset = "digits"
         data, labels = utils.get_data_and_labels(dataset)
 
-        # plotting the images
-        if PLOT:
-                utils.plot_images(data, labels)
-
         #flattening the image
         n_samples = len(data)
         data = data.reshape((n_samples, -1))
 
-        # splitting the data
-        X_train, X_val, X_test, y_train, y_val, y_test = utils.get_train_dev_test_split(
-                data, labels, TRAIN_SPLIT, VALID_SPLIT, TEST_SPLIT
-        )
+        compare_models(data, labels, 5)
 
-        model_path = svm_model_fit(X_train, X_val, X_test, y_train, y_val, y_test, C, GAMMA)
-        print(model_path)
-
-        h_param_set = {
-                "max_depth": [2, 4, 8, None],
-                "min_samples_split": [2, 8, 12],
-                "min_impurity_decrease": [0.0, 0.01, 0.001]
-        }
-        d_model_path = dtree_model_fit(X_train, X_val, X_test, y_train, y_val, y_test, h_param_set)
-        print(d_model_path)
         
