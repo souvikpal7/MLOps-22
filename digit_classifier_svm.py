@@ -5,13 +5,14 @@ import pandas as pd
 import os
 import pickle
 from itertools import product
-import utils
+from . import utils
 
 
 class Digits_SVM():
     def __init__(self) -> None:
         self.model = None
         self.model_path = "models/svm_api_model.pkl"
+        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
         pass
 
     def train(self):
@@ -72,22 +73,17 @@ class Digits_SVM():
         print(f"{result_df.loc[best_row_idx]}")
         self.model = best_model
 
-        with open(self.model_path, "wb") as file:
-            pickle.dump(self.model, file)
+        return best_model
 
     def load_model(self):
         assert os.path.exists(self.model_path), "Model is not trained"
         with open(self.model_path, "rb") as file:
             self.model = pickle.load(file)
 
-    def predict(self, imgs):
-        predictions = []
-        for img in imgs:
-            img = img.reshape((1, -1)) #flatting
-            pred = self.model.predict(img)
-            predictions.append(pred)
-
-        return predictions
+    def predict(self, img):
+        img = img.reshape((1, -1)) #flatting
+        pred = self.model.predict(img)
+        return pred
 
 
 if __name__ == "__main__":
