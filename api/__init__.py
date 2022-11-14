@@ -11,7 +11,7 @@ import logging
 # svm_model = Digits_SVM().train()
 
 app = Flask(__name__)
-with open("models/svm_api_model.pkl", "rb") as file:
+with open("/exp/models/svm_api_model.pkl", "rb") as file:
     svm_model = pickle.load(file)
 
 

@@ -2,10 +2,8 @@
 FROM python:3.8.1
 EXPOSE 5001
 WORKDIR /exp
-COPY ./models .
-COPY ./*.py .
-COPY ./api .
+COPY ./models/* /exp/models
+COPY ./api/* /exp/
 COPY ./requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir -r /exp/requirements.txt
-ENTRYPOINT [ "python" ]
-CMD [ "api/__init__.py" ]
+CMD ["python3", "__init__.py" ]
