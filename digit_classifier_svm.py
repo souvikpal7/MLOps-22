@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import pickle
 from itertools import product
-from . import utils
+import utils
 
 
 class Digits_SVM():
