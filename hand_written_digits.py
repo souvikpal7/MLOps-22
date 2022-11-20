@@ -7,9 +7,12 @@ from sklearn import svm
 from sklearn.tree import DecisionTreeClassifier
 import utils
 import datetime as dt
+import argparse
+from sklearn.metrics import f1_score
 
 # setting as global variable
 MODEL_DIR = "./models"
+RESULT_DIR= "./results"
 
 def svm_model_fit(
         X_train, 
@@ -18,6 +21,7 @@ def svm_model_fit(
         y_train, 
         y_val, 
         y_test,
+        random_state = 711,
         C=[0.25, 0.5, 1.0, 1.25], 
         GAMMA=[1e-4, 0.0001, 0.001, 0.01]
         ):
@@ -29,10 +33,15 @@ def svm_model_fit(
         best_row_idx = None
         result_df = pd.DataFrame(columns=["train", "dev", "test"])
         for hyper_params in list(product(C, GAMMA)):
-                param_dict = {'C': hyper_params[0], 'gamma': hyper_params[1]}
+                param_dict = {
+                        'C': hyper_params[0], 
+                        'gamma': hyper_params[1], 
+                        "random_state": random_state
+                        }
                 cur_row_idx = str(param_dict)
-                clf = svm.SVC()
-                clf.set_params(**param_dict)
+                clf = svm.SVC(C=param_dict["C"], gamma=param_dict["gamma"], random_state=random_state)
+                #clf = clf.set_params(**param_dict)
+
                 clf.fit(X_train, y_train)
                 train_acc = clf.score(X_train, y_train)
                 dev_acc = clf.score(X_val, y_val)
@@ -69,6 +78,15 @@ def svm_model_fit(
                 best_model_file_name += f"{key}:{best_hyper_params[key]}_"
         best_model_file_name += ".pkl"
         model_path = os.path.join(MODEL_DIR, best_model_file_name)
+
+        y_pred_test = best_model.predict(X_test)
+        best_model_test_acc = result_df.loc[best_row_idx, "test"]
+        best_model_f1_score = f1_score(y_test, y_pred_test, average="macro")
+        result_file_content = f"test accuracy: {best_model_test_acc}\ntest macro-f1: {best_model_f1_score}\nmodel saved at {model_path}"
+
+        txt_file_path = os.path.join(RESULT_DIR, best_model_file_name.replace(".pkl", ".txt"))
+        utils.save_text(txt_file_path, result_file_content)
+        
         utils.save_object(best_model, model_path)
         print(f"Path of best model: {model_path}")
         return model_path, best_model
@@ -81,6 +99,7 @@ def dtree_model_fit(
         y_train,
         y_test,
         y_val,
+        random_state=711,
         hyper_param_set={
                 "max_depth": [2, 4, 8, None],
                 "min_samples_split": [2, 8, 12],
@@ -88,6 +107,7 @@ def dtree_model_fit(
         }
 ):
         assert len(hyper_param_set) > 0
+        hyper_param_set['random_state'] = [random_state]
         h_param_names = list(hyper_param_set.keys())
         list_of_hparams = [hyper_param_set[h_param] for h_param in h_param_names]
         result_df = pd.DataFrame(columns=["train", "dev", "test"])
@@ -137,12 +157,21 @@ def dtree_model_fit(
                 best_model_file_name += f"{key}:{best_hyper_params[key]}_"
         best_model_file_name += ".pkl"
         model_path = os.path.join(MODEL_DIR, best_model_file_name)
+
+        y_pred_test = best_model.predict(X_test)
+        best_model_test_acc = result_df.loc[best_row_idx, "test"]
+        best_model_f1_score = f1_score(y_test, y_pred_test, average="macro")
+        result_file_content = f"test accuracy: {best_model_test_acc}\ntest macro-f1: {best_model_f1_score}\nmodel saved at {model_path}"
+
+        txt_file_path = os.path.join(RESULT_DIR, best_model_file_name.replace(".pkl", ".txt"))
+        utils.save_text(txt_file_path, result_file_content)
+
         utils.save_object(best_model, model_path)
         print(f"Path of best model: {model_path}")
         return model_path, best_model
 
 
-def compare_models(data, labels, splits=5):
+def compare_models(data, labels, splits=1):
         x_splits, y_splits = utils.split_non_overlapping(data, labels, splits)
         svm_scores = []
         d_tree_scores = []
@@ -173,7 +202,30 @@ def compare_models(data, labels, splits=5):
         print(f"Decision Tree model mean and std are {d_tree_mean} and {d_tree_std}")
 
 if __name__ == "__main__":
-        np.random.seed(711)
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+                "--clf_name",
+                dest='clf', 
+                type=str, 
+                help="Type of classifier"
+                )
+
+        
+        parser.add_argument(
+                "--random_state",
+                dest='random_state', 
+                type=int, 
+                help="Random state for datasplit"
+                )
+
+        args = parser.parse_args()
+        classifier_type = args.clf
+        random_state = args.random_state
+
+        assert classifier_type.lower() in ["svm", "tree"], "The value should be either svm or tree"
+
+        #print(classifier_type)
+        #print(random_state)
 
         # loading data
         dataset = "digits"
@@ -183,6 +235,42 @@ if __name__ == "__main__":
         n_samples = len(data)
         data = data.reshape((n_samples, -1))
 
-        compare_models(data, labels, 5)
+        # making only 1 split of dataset
+        x_splits, y_splits = utils.split_non_overlapping(data, labels, 1)
+        x_splits = x_splits[0]          # taking 0th index as there is only one value
+        y_splits = y_splits[0]          # taking 0th index as there is only one value
 
+
+        # splitting the dataset
+        TRAIN_SPLIT = 0.8
+        DEV_SPLIT = 0.1
+        TEST_SPLIT = 0.1
+        X_train, X_val, X_test, y_train, y_val, y_test = utils.get_train_dev_test_split(
+                x_splits, y_splits,            
+                TRAIN_SPLIT, DEV_SPLIT, TEST_SPLIT,
+                random_state=random_state, shuffle=False
+                )
+
+        if classifier_type == "svm":
+                model_path, best_model = svm_model_fit(
+                        X_train, 
+                        X_val,
+                        X_test, 
+                        y_train, 
+                        y_val, 
+                        y_test,
+                        random_state
+                        )
+        else:
+                model_path, best_model = dtree_model_fit(
+                        X_train, 
+                        X_val, 
+                        X_test, 
+                        y_train, 
+                        y_val, 
+                        y_test,
+                        random_state
+                        )
+
+        
         

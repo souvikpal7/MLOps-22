@@ -1,0 +1,3 @@
+test accuracy: 97.22222222222221
+test macro-f1: 0.971039412029369
+model saved at ./models/svm_digit_clf_C:0.5_gamma:0.001_random_state:42_.pkl

@@ -27,7 +27,9 @@ def get_data_and_labels(dataset_name):
     return X, Y
 
     
-def get_train_dev_test_split(X_data, y_data, train_split, valid_split, test_split, shuffle=True):
+def get_train_dev_test_split(X_data, y_data, train_split, valid_split, test_split, random_state=711,
+ shuffle=True
+ ):
     assert train_split + valid_split + test_split == 1.0
     assert len(X_data) == len(y_data), "Feature set and labels should have same size"
     
@@ -36,7 +38,7 @@ def get_train_dev_test_split(X_data, y_data, train_split, valid_split, test_spli
         y_data, 
         train_size=train_split, 
         shuffle=shuffle, 
-        random_state=711
+        random_state=random_state
         )
 
     X_val, X_test, y_val, y_test = train_test_split(
@@ -44,7 +46,7 @@ def get_train_dev_test_split(X_data, y_data, train_split, valid_split, test_spli
         y_test_val, 
         train_size = valid_split / (valid_split + test_split),
         shuffle=True, 
-        random_state=711
+        random_state=random_state
         )
 
     return X_train, X_val, X_test, y_train, y_val, y_test
@@ -83,4 +85,10 @@ def split_non_overlapping(data, labels, splits):
         y_data.append(y_split)
     
     return x_data, y_data
+    
+def save_text(file_loc, content):
+    dir_name = os.path.dirname(file_loc)
+    os.makedirs(dir_name, exist_ok=True)
+    with open(file_loc, "w") as file:
+        file.write(content)
     
